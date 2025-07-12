@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useToast } from '@/hooks/use-toast';
 
 export const RequestEditor = () => {
@@ -226,148 +227,152 @@ export const RequestEditor = () => {
           </div>
 
           {/* Request/Response Split View */}
-          <div className="flex-1 flex">
-            {/* Request Details */}
-            <div className="w-1/2 border-r border-gray-200">
-              <Tabs defaultValue="headers" className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="headers">Headers</TabsTrigger>
-                  <TabsTrigger value="body">Body</TabsTrigger>
-                  <TabsTrigger value="params">Params</TabsTrigger>
-                </TabsList>
+          <div className="flex-1">
+            <ResizablePanelGroup direction="horizontal">
+              {/* Request Details */}
+              <ResizablePanel defaultSize={50} minSize={30}>
+                <Tabs defaultValue="headers" className="h-full flex flex-col">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="headers">Headers</TabsTrigger>
+                    <TabsTrigger value="body">Body</TabsTrigger>
+                    <TabsTrigger value="params">Params</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="headers" className="flex-1 p-4 space-y-4">
-                  <div className="space-y-2">
-                    {Object.entries(activeTab.request.headers).map(([key, value]) => (
-                      <div key={key} className="flex items-center gap-2">
-                        <Input value={key} readOnly className="flex-1 font-mono text-sm" />
-                        <Input value={value} readOnly className="flex-1 font-mono text-sm" />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => removeHeader(key)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
-                    <Input
-                      placeholder="Header key"
-                      value={headerInput.key}
-                      onChange={(e) => setHeaderInput(prev => ({ ...prev, key: e.target.value }))}
-                      className="flex-1 font-mono text-sm"
-                    />
-                    <Input
-                      placeholder="Header value"
-                      value={headerInput.value}
-                      onChange={(e) => setHeaderInput(prev => ({ ...prev, value: e.target.value }))}
-                      className="flex-1 font-mono text-sm"
-                    />
-                    <Button size="sm" onClick={addHeader}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="body" className="flex-1 p-4">
-                  <Textarea
-                    value={activeTab.request.body}
-                    onChange={(e) => updateRequest({ body: e.target.value })}
-                    placeholder="Request body (JSON, XML, etc.)"
-                    className="h-full font-mono text-sm resize-none"
-                  />
-                </TabsContent>
-
-                <TabsContent value="params" className="flex-1 p-4">
-                  <div className="text-sm text-gray-500">
-                    Query parameters will be automatically parsed from the URL
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Response Section */}
-            <div className="w-1/2">
-              <Tabs defaultValue="response" className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="response">Response</TabsTrigger>
-                  <TabsTrigger value="headers">Headers</TabsTrigger>
-                  <TabsTrigger value="raw">Raw</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="response" className="flex-1 p-4">
-                  {activeTab.response ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <span className={`px-2 py-1 text-sm font-mono rounded ${
-                            activeTab.response.status < 300 ? 'bg-green-100 text-green-700' :
-                            activeTab.response.status < 400 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {activeTab.response.status} {activeTab.response.statusText}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {activeTab.response.time}ms
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {(activeTab.response.size / 1024).toFixed(1)} KB
-                          </span>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => copyResponse(JSON.stringify(activeTab.response?.data, null, 2))}
-                        >
-                          <Copy className="h-4 w-4 mr-1" />
-                          Copy
-                        </Button>
-                      </div>
-                      <pre className="bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-96">
-                        {JSON.stringify(activeTab.response.data, null, 2)}
-                      </pre>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Send className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Send a request to see the response</p>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="headers" className="flex-1 p-4">
-                  {activeTab.response ? (
+                  <TabsContent value="headers" className="flex-1 p-4 space-y-4">
                     <div className="space-y-2">
-                      {Object.entries(activeTab.response.headers).map(([key, value]) => (
-                        <div key={key} className="flex items-center gap-2 text-sm">
-                          <span className="font-mono text-gray-600 w-32 truncate">{key}:</span>
-                          <span className="font-mono text-gray-900 flex-1">{value}</span>
+                      {Object.entries(activeTab.request.headers).map(([key, value]) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <Input value={key} readOnly className="flex-1 font-mono text-sm" />
+                          <Input value={value} readOnly className="flex-1 font-mono text-sm" />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => removeHeader(key)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <p>Response headers will appear here</p>
-                    </div>
-                  )}
-                </TabsContent>
 
-                <TabsContent value="raw" className="flex-1 p-4">
-                  {activeTab.response ? (
-                    <pre className="bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto h-full">
-                      {JSON.stringify(activeTab.response, null, 2)}
-                    </pre>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <p>Raw response will appear here</p>
+                    <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
+                      <Input
+                        placeholder="Header key"
+                        value={headerInput.key}
+                        onChange={(e) => setHeaderInput(prev => ({ ...prev, key: e.target.value }))}
+                        className="flex-1 font-mono text-sm"
+                      />
+                      <Input
+                        placeholder="Header value"
+                        value={headerInput.value}
+                        onChange={(e) => setHeaderInput(prev => ({ ...prev, value: e.target.value }))}
+                        className="flex-1 font-mono text-sm"
+                      />
+                      <Button size="sm" onClick={addHeader}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </div>
+                  </TabsContent>
+
+                  <TabsContent value="body" className="flex-1 p-4">
+                    <Textarea
+                      value={activeTab.request.body}
+                      onChange={(e) => updateRequest({ body: e.target.value })}
+                      placeholder="Request body (JSON, XML, etc.)"
+                      className="h-full font-mono text-sm resize-none"
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="params" className="flex-1 p-4">
+                    <div className="text-sm text-gray-500">
+                      Query parameters will be automatically parsed from the URL
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+
+              {/* Response Section */}
+              <ResizablePanel defaultSize={50} minSize={30}>
+                <Tabs defaultValue="response" className="h-full flex flex-col">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="response">Response</TabsTrigger>
+                    <TabsTrigger value="headers">Headers</TabsTrigger>
+                    <TabsTrigger value="raw">Raw</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="response" className="flex-1 p-4">
+                    {activeTab.response ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <span className={`px-2 py-1 text-sm font-mono rounded ${
+                              activeTab.response.status < 300 ? 'bg-green-100 text-green-700' :
+                              activeTab.response.status < 400 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {activeTab.response.status} {activeTab.response.statusText}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {activeTab.response.time}ms
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {(activeTab.response.size / 1024).toFixed(1)} KB
+                            </span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => copyResponse(JSON.stringify(activeTab.response?.data, null, 2))}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
+                        <pre className="bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-96">
+                          {JSON.stringify(activeTab.response.data, null, 2)}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <Send className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>Send a request to see the response</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="headers" className="flex-1 p-4">
+                    {activeTab.response ? (
+                      <div className="space-y-2">
+                        {Object.entries(activeTab.response.headers).map(([key, value]) => (
+                          <div key={key} className="flex items-center gap-2 text-sm">
+                            <span className="font-mono text-gray-600 w-32 truncate">{key}:</span>
+                            <span className="font-mono text-gray-900 flex-1">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <p>Response headers will appear here</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="raw" className="flex-1 p-4">
+                    {activeTab.response ? (
+                      <pre className="bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto h-full">
+                        {JSON.stringify(activeTab.response, null, 2)}
+                      </pre>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <p>Raw response will appear here</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
         </div>
       )}

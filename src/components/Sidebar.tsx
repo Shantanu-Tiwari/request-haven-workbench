@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useApiStore } from '@/hooks/useApiStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 export const Sidebar = () => {
   const { 
@@ -16,6 +16,7 @@ export const Sidebar = () => {
 
   const [activeSection, setActiveSection] = useState<'collections' | 'history' | 'environments'>('collections');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleCollection = (collection: string) => {
     setExpandedCollections(prev => {
@@ -47,12 +48,63 @@ export const Sidebar = () => {
     return colors[method as keyof typeof colors] || 'text-gray-600 bg-gray-50';
   };
 
+  if (isCollapsed) {
+    return (
+      <div className="w-12 h-screen bg-white border-r border-gray-200 flex flex-col items-center py-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCollapsed(false)}
+          className="mb-4"
+          title="Expand Sidebar"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </Button>
+        
+        <div className="flex flex-col gap-2">
+          <Button
+            variant={activeSection === 'collections' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveSection('collections')}
+            title="Collections"
+          >
+            <Database className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={activeSection === 'history' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveSection('history')}
+            title="History"
+          >
+            <Clock className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={activeSection === 'environments' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveSection('environments')}
+            title="Environments"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-80 h-screen bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-full h-screen bg-white border-r border-gray-200 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">API Nexus</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(true)}
+            title="Collapse Sidebar"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Environment Selector */}

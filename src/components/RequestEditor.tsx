@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Send, Plus, X, Save, Copy } from 'lucide-react';
 import { useApiStore } from '@/hooks/useApiStore';
@@ -93,7 +92,7 @@ export const RequestEditor = () => {
 
   if (tabs.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
+      <div className="h-full flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="text-6xl mb-4">🚀</div>
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">Welcome to API Nexus</h2>
@@ -108,9 +107,9 @@ export const RequestEditor = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white">
       {/* Tabs Header */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 shrink-0">
         <div className="flex items-center">
           <div className="flex-1 flex items-center overflow-x-auto">
             {tabs.map(tab => (
@@ -163,9 +162,9 @@ export const RequestEditor = () => {
       </div>
 
       {activeTab && (
-        <div className="flex-1 flex flex-col">
-          {/* Request Section */}
-          <div className="p-6 border-b border-gray-200">
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Request Configuration Section */}
+          <div className="p-6 border-b border-gray-200 shrink-0">
             <div className="space-y-4">
               {/* Name and Save */}
               <div className="flex items-center justify-between">
@@ -227,18 +226,18 @@ export const RequestEditor = () => {
           </div>
 
           {/* Request/Response Split View */}
-          <div className="flex-1">
-            <ResizablePanelGroup direction="horizontal">
+          <div className="flex-1 min-h-0">
+            <ResizablePanelGroup direction="horizontal" className="h-full">
               {/* Request Details */}
-              <ResizablePanel defaultSize={50} minSize={30}>
+              <ResizablePanel defaultSize={50} minSize={25} className="h-full">
                 <Tabs defaultValue="headers" className="h-full flex flex-col">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-3 shrink-0">
                     <TabsTrigger value="headers">Headers</TabsTrigger>
                     <TabsTrigger value="body">Body</TabsTrigger>
                     <TabsTrigger value="params">Params</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="headers" className="flex-1 p-4 space-y-4">
+                  <TabsContent value="headers" className="flex-1 p-4 space-y-4 overflow-auto">
                     <div className="space-y-2">
                       {Object.entries(activeTab.request.headers).map(([key, value]) => (
                         <div key={key} className="flex items-center gap-2">
@@ -294,15 +293,15 @@ export const RequestEditor = () => {
               <ResizableHandle withHandle />
 
               {/* Response Section */}
-              <ResizablePanel defaultSize={50} minSize={30}>
+              <ResizablePanel defaultSize={50} minSize={25} className="h-full">
                 <Tabs defaultValue="response" className="h-full flex flex-col">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-3 shrink-0">
                     <TabsTrigger value="response">Response</TabsTrigger>
                     <TabsTrigger value="headers">Headers</TabsTrigger>
                     <TabsTrigger value="raw">Raw</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="response" className="flex-1 p-4">
+                  <TabsContent value="response" className="flex-1 p-4 overflow-auto">
                     {activeTab.response ? (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -330,7 +329,7 @@ export const RequestEditor = () => {
                             Copy
                           </Button>
                         </div>
-                        <pre className="bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-96">
+                        <pre className="bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto flex-1">
                           {JSON.stringify(activeTab.response.data, null, 2)}
                         </pre>
                       </div>
@@ -342,7 +341,7 @@ export const RequestEditor = () => {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="headers" className="flex-1 p-4">
+                  <TabsContent value="headers" className="flex-1 p-4 overflow-auto">
                     {activeTab.response ? (
                       <div className="space-y-2">
                         {Object.entries(activeTab.response.headers).map(([key, value]) => (
@@ -359,7 +358,7 @@ export const RequestEditor = () => {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="raw" className="flex-1 p-4">
+                  <TabsContent value="raw" className="flex-1 p-4 overflow-auto">
                     {activeTab.response ? (
                       <pre className="bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto h-full">
                         {JSON.stringify(activeTab.response, null, 2)}

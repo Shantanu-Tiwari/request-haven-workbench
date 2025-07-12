@@ -154,6 +154,7 @@ export const RequestEditor = () => {
             variant="ghost"
             onClick={() => addTab()}
             className="m-2"
+            title="New Request (Cmd+T)"
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -165,7 +166,7 @@ export const RequestEditor = () => {
           {/* Request Section */}
           <div className="p-6 border-b border-gray-200">
             <div className="space-y-4">
-              {/* Name and Controls */}
+              {/* Name and Save */}
               <div className="flex items-center justify-between">
                 <Input
                   value={activeTab.request.name}
@@ -173,19 +174,18 @@ export const RequestEditor = () => {
                   className="text-lg font-semibold border-none px-0 focus:ring-0"
                   placeholder="Request Name"
                 />
-                <div className="flex items-center gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={handleSaveToCollection}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={handleSaveToCollection}
+                  title="Save to Collection"
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  Save
+                </Button>
               </div>
 
-              {/* Method and URL */}
+              {/* Method, URL and Send */}
               <div className="flex items-center gap-3">
                 <select
                   value={activeTab.request.method}
@@ -210,6 +210,7 @@ export const RequestEditor = () => {
                   onClick={handleSendRequest}
                   disabled={activeTab.isLoading}
                   className="px-6"
+                  title="Send Request (Cmd+Enter)"
                 >
                   {activeTab.isLoading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -224,8 +225,9 @@ export const RequestEditor = () => {
             </div>
           </div>
 
-          {/* Request Details */}
+          {/* Request/Response Split View */}
           <div className="flex-1 flex">
+            {/* Request Details */}
             <div className="w-1/2 border-r border-gray-200">
               <Tabs defaultValue="headers" className="h-full flex flex-col">
                 <TabsList className="grid w-full grid-cols-3">

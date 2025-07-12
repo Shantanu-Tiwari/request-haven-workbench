@@ -1,9 +1,7 @@
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, Clock, Database, Settings, Folder, FolderOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpen } from 'lucide-react';
 import { useApiStore } from '@/hooks/useApiStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const Sidebar = () => {
@@ -13,7 +11,6 @@ export const Sidebar = () => {
     environments,
     activeEnvironmentId,
     loadFromCollection,
-    addTab,
     setActiveEnvironment
   } = useApiStore();
 
@@ -56,14 +53,6 @@ export const Sidebar = () => {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">API Nexus</h2>
-          <Button
-            size="sm"
-            onClick={() => addTab()}
-            className="h-8 px-3"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            New
-          </Button>
         </div>
 
         {/* Environment Selector */}

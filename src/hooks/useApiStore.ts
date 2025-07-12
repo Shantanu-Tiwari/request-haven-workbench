@@ -42,6 +42,7 @@ interface ApiStore {
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   updateTab: (tabId: string, updates: Partial<ApiTab>) => void;
+  sendRequest: (tabId: string) => Promise<void>;
 
   // Collections
   collections: ApiRequest[];
@@ -147,6 +148,100 @@ export const useApiStore = create<ApiStore>()(
             tab.id === tabId ? { ...tab, ...updates } : tab
           )
         }));
+      },
+
+      sendRequest: async (tabId) => {
+        const state = get();
+        const tab = state.tabs.find(t => t.id === tabId);
+        if (!tab) return;
+
+        const { request } = tab;
+        const interpolatedUrl = state.interpolateVariables(request.url);
+        const interpolatedBody = state.interpolateVariables(request.body);
+
+        // Set loading state
+        get().updateTab(tabId, { isLoading: true });
+
+        try {
+          const startTime = Date.now();
+          
+          // Prepare headers
+          const headers: Record<string, string> = {};
+          Object.entries(request.headers).forEach(([key, value]) => {
+            if (key.trim() && value.trim()) {
+              headers[key] = state.interpolateVariables(value);
+            }
+          });
+
+          // Add Content-Type for POST/PUT/PATCH if body exists and no Content-Type set
+          if (['POST', 'PUT', 'PATCH'].includes(request.method) && interpolatedBody && !headers['Content-Type']) {
+            try {
+              JSON.parse(interpolatedBody);
+              headers['Content-Type'] = 'application/json';
+            } catch {
+              headers['Content-Type'] = 'text/plain';
+            }
+          }
+
+          const response = await fetch(interpolatedUrl, {
+            method: request.method,
+            headers,
+            body: ['GET', 'DELETE'].includes(request.method) ? undefined : interpolatedBody || undefined,
+          });
+
+          const endTime = Date.now();
+          const responseTime = endTime - startTime;
+
+          // Get response data
+          const responseText = await response.text();
+          let responseData;
+          try {
+            responseData = JSON.parse(responseText);
+          } catch {
+            responseData = responseText;
+          }
+
+          // Create response headers object
+          const responseHeaders: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            responseHeaders[key] = value;
+          });
+
+          const apiResponse: ApiResponse = {
+            status: response.status,
+            statusText: response.statusText,
+            headers: responseHeaders,
+            data: responseData,
+            time: responseTime,
+            size: new Blob([responseText]).size
+          };
+
+          // Update tab with response
+          get().updateTab(tabId, { 
+            response: apiResponse, 
+            isLoading: false 
+          });
+
+          // Add to history
+          get().addToHistory(request);
+
+        } catch (error) {
+          console.error('Request failed:', error);
+          
+          const errorResponse: ApiResponse = {
+            status: 0,
+            statusText: 'Network Error',
+            headers: {},
+            data: { error: error instanceof Error ? error.message : 'Unknown error' },
+            time: 0,
+            size: 0
+          };
+
+          get().updateTab(tabId, { 
+            response: errorResponse, 
+            isLoading: false 
+          });
+        }
       },
 
       addToCollection: (request) => {

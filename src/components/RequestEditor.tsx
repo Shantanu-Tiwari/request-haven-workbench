@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Send, Plus, X, Save, Copy, Settings } from 'lucide-react';
+import { Send, Plus, X, Save, Copy } from 'lucide-react';
 import { useApiStore } from '@/hooks/useApiStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 export const RequestEditor = () => {
   const { 
@@ -15,64 +16,18 @@ export const RequestEditor = () => {
     closeTab, 
     setActiveTab, 
     updateTab,
-    interpolateVariables,
+    sendRequest,
     addToCollection,
-    addToHistory
   } = useApiStore();
 
+  const { toast } = useToast();
   const [headerInput, setHeaderInput] = useState({ key: '', value: '' });
-  const [responseData, setResponseData] = useState<any>(null);
 
   const activeTab = tabs.find(tab => tab.id === activeTabId);
 
   const handleSendRequest = async () => {
     if (!activeTab) return;
-
-    const { request } = activeTab;
-    const interpolatedUrl = interpolateVariables(request.url);
-    const interpolatedBody = interpolateVariables(request.body);
-
-    updateTab(activeTab.id, { isLoading: true });
-
-    try {
-      // Simulate API call
-      console.log('Sending request:', {
-        method: request.method,
-        url: interpolatedUrl,
-        headers: request.headers,
-        body: interpolatedBody
-      });
-
-      // Mock response for demo
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-      
-      const mockResponse = {
-        status: 200,
-        statusText: 'OK',
-        headers: { 'content-type': 'application/json' },
-        data: {
-          message: 'Success',
-          timestamp: new Date().toISOString(),
-          url: interpolatedUrl,
-          method: request.method,
-          demo: true
-        },
-        time: Math.round(100 + Math.random() * 900),
-        size: Math.round(1000 + Math.random() * 5000)
-      };
-
-      updateTab(activeTab.id, { 
-        response: mockResponse, 
-        isLoading: false 
-      });
-
-      setResponseData(mockResponse);
-      addToHistory(request);
-
-    } catch (error) {
-      console.error('Request failed:', error);
-      updateTab(activeTab.id, { isLoading: false });
-    }
+    await sendRequest(activeTab.id);
   };
 
   const updateRequest = (updates: any) => {
@@ -99,6 +54,23 @@ export const RequestEditor = () => {
     const newHeaders = { ...activeTab.request.headers };
     delete newHeaders[key];
     updateRequest({ headers: newHeaders });
+  };
+
+  const handleSaveToCollection = () => {
+    if (!activeTab) return;
+    addToCollection(activeTab.request);
+    toast({
+      title: "Saved to Collection",
+      description: `"${activeTab.request.name}" has been saved to your collection.`,
+    });
+  };
+
+  const copyResponse = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      title: "Copied to clipboard",
+      description: "Response content copied successfully.",
+    });
   };
 
   // Keyboard shortcuts
@@ -205,7 +177,7 @@ export const RequestEditor = () => {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => addToCollection(activeTab.request)}
+                    onClick={handleSaveToCollection}
                   >
                     <Save className="h-4 w-4 mr-1" />
                     Save
@@ -343,7 +315,11 @@ export const RequestEditor = () => {
                             {(activeTab.response.size / 1024).toFixed(1)} KB
                           </span>
                         </div>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => copyResponse(JSON.stringify(activeTab.response?.data, null, 2))}
+                        >
                           <Copy className="h-4 w-4 mr-1" />
                           Copy
                         </Button>

@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpen, Plus, Edit2, PanelLeftClose, PanelLeftOpen, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpen, Plus, Edit2, PanelLeftClose, PanelLeftOpen, Trash2, Check, X } from 'lucide-react';
 import { useApiStore } from '@/hooks/useApiStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,8 @@ export const Sidebar = () => {
     setActiveEnvironment,
     updateEnvironmentVariable,
     deleteEnvironmentVariable,
-    addEnvironmentVariable
+    addEnvironmentVariable,
+    removeFromCollection
   } = useApiStore();
 
   const [activeSection, setActiveSection] = useState<'collections' | 'history' | 'environments'>('collections');
@@ -50,6 +52,7 @@ export const Sidebar = () => {
     const newName = `Collection ${collectionCount + 1}`;
     addCollection(newName);
     setActiveCollection(newName);
+    setExpandedCollections(prev => new Set([...prev, newName]));
   };
 
   const handleRenameCollection = (oldName: string, newName: string) => {
@@ -61,6 +64,17 @@ export const Sidebar = () => {
     }
     setEditingCollection(null);
     setNewCollectionName('');
+  };
+
+  const handleDeleteCollection = (collectionName: string) => {
+    // Remove all requests in this collection
+    const requestsToDelete = collections.filter(req => req.collection === collectionName);
+    requestsToDelete.forEach(req => removeFromCollection(req.id));
+    
+    // If this was the active collection, switch to Default
+    if (activeCollection === collectionName) {
+      setActiveCollection('Default');
+    }
   };
 
   const startEditingCollection = (collectionName: string) => {
@@ -78,6 +92,7 @@ export const Sidebar = () => {
   const handleVariableEdit = (envId: string, key: string, value: string) => {
     updateEnvironmentVariable(envId, key, value);
     setEditingVariable(null);
+    setNewVariableValue('');
   };
 
   const handleVariableDelete = (envId: string, key: string) => {
@@ -91,6 +106,10 @@ export const Sidebar = () => {
       setNewVariableValue('');
       setAddingVariable(null);
     }
+  };
+
+  const handleUseEnvironment = (environmentId: string) => {
+    setActiveEnvironment(environmentId);
   };
 
   const groupedCollections = collections.reduce((acc, request) => {
@@ -218,61 +237,100 @@ export const Sidebar = () => {
                               <Folder className="h-4 w-4 mr-2 text-gray-500" />
                             )}
                             {editingCollection === collectionName ? (
-                              <input
-                                type="text"
-                                value={newCollectionName}
-                                onChange={(e) => setNewCollectionName(e.target.value)}
-                                onBlur={() => handleRenameCollection(collectionName, newCollectionName)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleRenameCollection(collectionName, newCollectionName);
-                                  } else if (e.key === 'Escape') {
+                              <div className="flex items-center flex-1 gap-1">
+                                <input
+                                  type="text"
+                                  value={newCollectionName}
+                                  onChange={(e) => setNewCollectionName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleRenameCollection(collectionName, newCollectionName);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingCollection(null);
+                                      setNewCollectionName('');
+                                    }
+                                  }}
+                                  className="flex-1 bg-white border border-gray-300 rounded px-1 py-0.5 text-xs min-w-0"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => handleRenameCollection(collectionName, newCollectionName)}
+                                  className="p-0.5 hover:bg-gray-200 rounded"
+                                >
+                                  <Check className="h-3 w-3 text-green-600" />
+                                </button>
+                                <button
+                                  onClick={() => {
                                     setEditingCollection(null);
                                     setNewCollectionName('');
-                                  }
-                                }}
-                                className="flex-1 bg-transparent border-none outline-none"
-                                autoFocus
-                              />
+                                  }}
+                                  className="p-0.5 hover:bg-gray-200 rounded"
+                                >
+                                  <X className="h-3 w-3 text-red-600" />
+                                </button>
+                              </div>
                             ) : (
-                              collectionName
+                              <>
+                                <span className="flex-1 truncate">{collectionName}</span>
+                                <span className="ml-auto text-xs text-gray-500">
+                                  {requests.length}
+                                </span>
+                              </>
                             )}
-                            <span className="ml-auto text-xs text-gray-500">
-                              {requests.length}
-                            </span>
                           </button>
                           {editingCollection !== collectionName && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => startEditingCollection(collectionName)}
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
+                            <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => startEditingCollection(collectionName)}
+                                className="h-6 w-6"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                              {collectionName !== 'Default' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteCollection(collectionName)}
+                                  className="h-6 w-6 text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
                         
                         {expandedCollections.has(collectionName) && (
                           <div className="ml-4 space-y-1">
                             {requests.map(request => (
-                              <button
-                                key={request.id}
-                                onClick={() => loadFromCollection(request)}
-                                className="flex items-center w-full px-2 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors group"
-                              >
-                                <span className={`px-2 py-0.5 text-xs font-mono rounded ${getMethodColor(request.method)}`}>
-                                  {request.method}
-                                </span>
-                                <div className="ml-2 flex-1 text-left">
-                                  <div className="font-medium text-gray-900 truncate">
-                                    {request.name}
+                              <div key={request.id} className="flex items-center group">
+                                <button
+                                  onClick={() => loadFromCollection(request)}
+                                  className="flex items-center flex-1 px-2 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
+                                >
+                                  <span className={`px-2 py-0.5 text-xs font-mono rounded ${getMethodColor(request.method)}`}>
+                                    {request.method}
+                                  </span>
+                                  <div className="ml-2 flex-1 text-left min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      {request.name}
+                                    </div>
+                                    <div className="text-xs text-gray-500 truncate">
+                                      {request.url}
+                                    </div>
                                   </div>
-                                  <div className="text-xs text-gray-500 truncate">
-                                    {request.url}
-                                  </div>
-                                </div>
-                              </button>
+                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeFromCollection(request.id)}
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -330,8 +388,17 @@ export const Sidebar = () => {
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-gray-900">{env.name}</div>
-                        {activeEnvironmentId === env.id && (
+                        {activeEnvironmentId === env.id ? (
                           <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Active</span>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUseEnvironment(env.id)}
+                            className="h-6 text-xs"
+                          >
+                            Use This
+                          </Button>
                         )}
                       </div>
                       
@@ -432,17 +499,6 @@ export const Sidebar = () => {
                           </Button>
                         )}
                       </div>
-                      
-                      {activeEnvironmentId !== env.id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setActiveEnvironment(env.id)}
-                          className="w-full mt-2"
-                        >
-                          Use This Environment
-                        </Button>
-                      )}
                     </div>
                   ))}
                 </div>

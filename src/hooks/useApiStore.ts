@@ -45,7 +45,9 @@ interface ApiStore {
 
   // Collections
   collections: ApiRequest[];
-  addToCollection: (request: ApiRequest) => void;
+  activeCollection: string;
+  setActiveCollection: (collection: string) => void;
+  addToCollection: (request: ApiRequest, collection?: string) => void;
   removeFromCollection: (requestId: string) => void;
   loadFromCollection: (request: ApiRequest) => void;
   addCollection: (name: string) => void;
@@ -72,6 +74,7 @@ export const useApiStore = create<ApiStore>()(
       tabs: [],
       activeTabId: null,
       collections: [],
+      activeCollection: 'Default',
       environments: [
         {
           id: 'local',
@@ -245,9 +248,16 @@ export const useApiStore = create<ApiStore>()(
         }
       },
 
-      addToCollection: (request) => {
+      setActiveCollection: (collection) => {
+        set({ activeCollection: collection });
+      },
+
+      addToCollection: (request, collection) => {
+        const targetCollection = collection || get().activeCollection;
+        const requestWithCollection = { ...request, collection: targetCollection };
+        
         set((state) => ({
-          collections: [...state.collections, request]
+          collections: [...state.collections, requestWithCollection]
         }));
       },
 
@@ -262,20 +272,8 @@ export const useApiStore = create<ApiStore>()(
       },
 
       addCollection: (name) => {
-        // Create a placeholder request for the new collection
-        const newRequest: ApiRequest = {
-          id: `req-${Date.now()}`,
-          name: `${name} Request`,
-          method: 'GET',
-          url: '',
-          headers: {},
-          body: '',
-          collection: name
-        };
-        
-        set((state) => ({
-          collections: [...state.collections, newRequest]
-        }));
+        // Just set the active collection, don't create a placeholder request
+        set({ activeCollection: name });
       },
 
       renameCollection: (oldName, newName) => {
@@ -330,6 +328,7 @@ export const useApiStore = create<ApiStore>()(
       name: 'api-nexus-store',
       partialize: (state) => ({
         collections: state.collections,
+        activeCollection: state.activeCollection,
         environments: state.environments,
         activeEnvironmentId: state.activeEnvironmentId,
         history: state.history

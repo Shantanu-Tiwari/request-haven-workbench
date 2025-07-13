@@ -4,15 +4,18 @@ import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpe
 import { useApiStore } from '@/hooks/useApiStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const Sidebar = () => {
   const { 
     collections, 
     history, 
     environments,
+    activeEnvironmentId,
     loadFromCollection,
     addCollection,
-    renameCollection
+    renameCollection,
+    setActiveEnvironment
   } = useApiStore();
 
   const [activeSection, setActiveSection] = useState<'collections' | 'history' | 'environments'>('collections');
@@ -20,6 +23,7 @@ export const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingCollection, setEditingCollection] = useState<string | null>(null);
   const [newCollectionName, setNewCollectionName] = useState('');
+  const [activeCollection, setActiveCollection] = useState<string>('Default');
 
   const toggleCollection = (collection: string) => {
     setExpandedCollections(prev => {
@@ -37,11 +41,15 @@ export const Sidebar = () => {
     const collectionCount = Object.keys(groupedCollections).length;
     const newName = `Collection ${collectionCount + 1}`;
     addCollection(newName);
+    setActiveCollection(newName);
   };
 
   const handleRenameCollection = (oldName: string, newName: string) => {
     if (newName && newName.trim() && newName !== oldName) {
       renameCollection(oldName, newName.trim());
+      if (activeCollection === oldName) {
+        setActiveCollection(newName.trim());
+      }
     }
     setEditingCollection(null);
     setNewCollectionName('');
@@ -52,8 +60,15 @@ export const Sidebar = () => {
     setNewCollectionName(collectionName);
   };
 
+  const handleCollectionClick = (collectionName: string) => {
+    setActiveCollection(collectionName);
+    if (!expandedCollections.has(collectionName)) {
+      toggleCollection(collectionName);
+    }
+  };
+
   const groupedCollections = collections.reduce((acc, request) => {
-    const collection = request.collection || 'Uncategorized';
+    const collection = request.collection || 'Default';
     if (!acc[collection]) acc[collection] = [];
     acc[collection].push(request);
     return acc;
@@ -70,6 +85,11 @@ export const Sidebar = () => {
     return colors[method as keyof typeof colors] || 'text-gray-600 bg-gray-50';
   };
 
+  const collectionNames = Object.keys(groupedCollections);
+  if (collectionNames.length === 0) {
+    collectionNames.push('Default');
+  }
+
   return (
     <div className={`h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-80'}`}>
       {/* Header */}
@@ -85,6 +105,23 @@ export const Sidebar = () => {
             {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
         </div>
+        
+        {/* Collection Selector */}
+        {!isCollapsed && activeSection === 'collections' && (
+          <div className="mb-3">
+            <label className="text-xs font-medium text-gray-500 mb-1 block">Active Collection</label>
+            <Select value={activeCollection} onValueChange={setActiveCollection}>
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {collectionNames.map(name => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {!isCollapsed && (
@@ -142,8 +179,12 @@ export const Sidebar = () => {
                       <div key={collectionName} className="space-y-1">
                         <div className="flex items-center group">
                           <button
-                            onClick={() => toggleCollection(collectionName)}
-                            className="flex items-center flex-1 px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                            onClick={() => handleCollectionClick(collectionName)}
+                            className={`flex items-center flex-1 px-2 py-1 text-sm font-medium rounded-md transition-colors ${
+                              activeCollection === collectionName 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
                           >
                             {expandedCollections.has(collectionName) ? (
                               <FolderOpen className="h-4 w-4 mr-2 text-gray-500" />
@@ -228,16 +269,21 @@ export const Sidebar = () => {
                       <button
                         key={`${request.id}-${request.timestamp}`}
                         onClick={() => loadFromCollection(request)}
-                        className="flex items-center w-full px-2 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
+                        className="flex items-start w-full px-2 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
                       >
-                        <span className={`px-2 py-0.5 text-xs font-mono rounded ${getMethodColor(request.method)}`}>
+                        <span className={`px-2 py-0.5 text-xs font-mono rounded shrink-0 ${getMethodColor(request.method)}`}>
                           {request.method}
                         </span>
-                        <div className="ml-2 flex-1 text-left">
+                        <div className="ml-2 flex-1 min-w-0">
                           <div className="font-medium text-gray-900 truncate">
-                            {request.url || 'Untitled Request'}
+                            {request.name || 'Untitled Request'}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 overflow-x-auto scrollbar-hide">
+                            <div className="whitespace-nowrap">
+                              {request.url}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-400">
                             {new Date(request.timestamp).toLocaleTimeString()}
                           </div>
                         </div>
@@ -249,17 +295,37 @@ export const Sidebar = () => {
 
               {activeSection === 'environments' && (
                 <div className="space-y-4">
+                  <div className="text-xs text-gray-500 mb-3">
+                    Environment variables can be used in requests with {`{{variable_name}}`} syntax
+                  </div>
                   {environments.map(env => (
-                    <div key={env.id} className="space-y-2">
-                      <div className="font-medium text-gray-900">{env.name}</div>
+                    <div key={env.id} className={`space-y-2 p-3 rounded-lg border ${
+                      activeEnvironmentId === env.id ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-gray-900">{env.name}</div>
+                        {activeEnvironmentId === env.id && (
+                          <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Active</span>
+                        )}
+                      </div>
                       <div className="space-y-1">
                         {Object.entries(env.variables).map(([key, value]) => (
                           <div key={key} className="flex items-center text-sm">
-                            <span className="text-gray-600 font-mono w-20 truncate">{key}:</span>
+                            <span className="text-gray-600 font-mono w-24 truncate">{key}:</span>
                             <span className="text-gray-900 font-mono flex-1 truncate ml-2">{value}</span>
                           </div>
                         ))}
                       </div>
+                      {activeEnvironmentId !== env.id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveEnvironment(env.id)}
+                          className="w-full mt-2"
+                        >
+                          Use This Environment
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

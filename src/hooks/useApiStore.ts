@@ -59,6 +59,9 @@ interface ApiStore {
   addEnvironment: (environment: Environment) => void;
   setActiveEnvironment: (environmentId: string) => void;
   updateEnvironment: (environmentId: string, updates: Partial<Environment>) => void;
+  updateEnvironmentVariable: (environmentId: string, key: string, value: string) => void;
+  deleteEnvironmentVariable: (environmentId: string, key: string) => void;
+  addEnvironmentVariable: (environmentId: string, key: string, value: string) => void;
 
   // History
   history: (ApiRequest & { timestamp: number })[];
@@ -115,6 +118,7 @@ export const useApiStore = create<ApiStore>()(
             url: '',
             headers: {},
             body: '',
+            collection: get().activeCollection,
             ...request
           },
           isLoading: false
@@ -252,9 +256,12 @@ export const useApiStore = create<ApiStore>()(
         set({ activeCollection: collection });
       },
 
-      addToCollection: (request, collection) => {
-        const targetCollection = collection || get().activeCollection;
-        const requestWithCollection = { ...request, collection: targetCollection };
+      addToCollection: (request) => {
+        const state = get();
+        const requestWithCollection = { 
+          ...request, 
+          collection: state.activeCollection
+        };
         
         set((state) => ({
           collections: [...state.collections, requestWithCollection]
@@ -300,6 +307,53 @@ export const useApiStore = create<ApiStore>()(
         set((state) => ({
           environments: state.environments.map(env => 
             env.id === environmentId ? { ...env, ...updates } : env
+          )
+        }));
+      },
+
+      updateEnvironmentVariable: (environmentId, key, value) => {
+        set((state) => ({
+          environments: state.environments.map(env => 
+            env.id === environmentId 
+              ? { 
+                  ...env, 
+                  variables: { 
+                    ...env.variables, 
+                    [key]: value 
+                  } 
+                }
+              : env
+          )
+        }));
+      },
+
+      deleteEnvironmentVariable: (environmentId, key) => {
+        set((state) => ({
+          environments: state.environments.map(env => 
+            env.id === environmentId 
+              ? { 
+                  ...env, 
+                  variables: Object.fromEntries(
+                    Object.entries(env.variables).filter(([k]) => k !== key)
+                  )
+                }
+              : env
+          )
+        }));
+      },
+
+      addEnvironmentVariable: (environmentId, key, value) => {
+        set((state) => ({
+          environments: state.environments.map(env => 
+            env.id === environmentId 
+              ? { 
+                  ...env, 
+                  variables: { 
+                    ...env.variables, 
+                    [key]: value 
+                  } 
+                }
+              : env
           )
         }));
       },

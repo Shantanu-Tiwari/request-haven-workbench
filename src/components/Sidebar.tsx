@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpen, Plus, Edit2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Database, Settings, Folder, FolderOpen, Plus, Edit2, PanelLeftClose, PanelLeftOpen, Trash2 } from 'lucide-react';
 import { useApiStore } from '@/hooks/useApiStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 export const Sidebar = () => {
   const { 
@@ -12,10 +12,15 @@ export const Sidebar = () => {
     history, 
     environments,
     activeEnvironmentId,
+    activeCollection,
     loadFromCollection,
     addCollection,
     renameCollection,
-    setActiveEnvironment
+    setActiveCollection,
+    setActiveEnvironment,
+    updateEnvironmentVariable,
+    deleteEnvironmentVariable,
+    addEnvironmentVariable
   } = useApiStore();
 
   const [activeSection, setActiveSection] = useState<'collections' | 'history' | 'environments'>('collections');
@@ -23,7 +28,10 @@ export const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingCollection, setEditingCollection] = useState<string | null>(null);
   const [newCollectionName, setNewCollectionName] = useState('');
-  const [activeCollection, setActiveCollection] = useState<string>('Default');
+  const [editingVariable, setEditingVariable] = useState<{envId: string, key: string} | null>(null);
+  const [newVariableKey, setNewVariableKey] = useState('');
+  const [newVariableValue, setNewVariableValue] = useState('');
+  const [addingVariable, setAddingVariable] = useState<string | null>(null);
 
   const toggleCollection = (collection: string) => {
     setExpandedCollections(prev => {
@@ -67,6 +75,24 @@ export const Sidebar = () => {
     }
   };
 
+  const handleVariableEdit = (envId: string, key: string, value: string) => {
+    updateEnvironmentVariable(envId, key, value);
+    setEditingVariable(null);
+  };
+
+  const handleVariableDelete = (envId: string, key: string) => {
+    deleteEnvironmentVariable(envId, key);
+  };
+
+  const handleAddVariable = (envId: string) => {
+    if (newVariableKey.trim() && newVariableValue.trim()) {
+      addEnvironmentVariable(envId, newVariableKey.trim(), newVariableValue.trim());
+      setNewVariableKey('');
+      setNewVariableValue('');
+      setAddingVariable(null);
+    }
+  };
+
   const groupedCollections = collections.reduce((acc, request) => {
     const collection = request.collection || 'Default';
     if (!acc[collection]) acc[collection] = [];
@@ -106,8 +132,8 @@ export const Sidebar = () => {
           </Button>
         </div>
         
-        {/* Collection Selector */}
-        {!isCollapsed && activeSection === 'collections' && (
+        {/* Active Collection Display - Show in all tabs */}
+        {!isCollapsed && (
           <div className="mb-3">
             <label className="text-xs font-medium text-gray-500 mb-1 block">Active Collection</label>
             <Select value={activeCollection} onValueChange={setActiveCollection}>
@@ -308,14 +334,105 @@ export const Sidebar = () => {
                           <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Active</span>
                         )}
                       </div>
-                      <div className="space-y-1">
+                      
+                      <div className="space-y-2">
                         {Object.entries(env.variables).map(([key, value]) => (
-                          <div key={key} className="flex items-center text-sm">
-                            <span className="text-gray-600 font-mono w-24 truncate">{key}:</span>
-                            <span className="text-gray-900 font-mono flex-1 truncate ml-2">{value}</span>
+                          <div key={key} className="flex items-center gap-2 text-sm">
+                            {editingVariable?.envId === env.id && editingVariable?.key === key ? (
+                              <>
+                                <Input
+                                  value={key}
+                                  disabled
+                                  className="h-7 text-xs font-mono flex-1"
+                                />
+                                <Input
+                                  value={newVariableValue || value}
+                                  onChange={(e) => setNewVariableValue(e.target.value)}
+                                  onBlur={() => handleVariableEdit(env.id, key, newVariableValue || value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleVariableEdit(env.id, key, newVariableValue || value);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingVariable(null);
+                                      setNewVariableValue('');
+                                    }
+                                  }}
+                                  className="h-7 text-xs font-mono flex-1"
+                                  autoFocus
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-gray-600 font-mono text-xs min-w-0 flex-1 truncate">{key}:</span>
+                                <span className="text-gray-900 font-mono text-xs min-w-0 flex-1 truncate">{value}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setEditingVariable({ envId: env.id, key });
+                                    setNewVariableValue(value);
+                                  }}
+                                  className="h-6 w-6 opacity-60 hover:opacity-100"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleVariableDelete(env.id, key)}
+                                  className="h-6 w-6 opacity-60 hover:opacity-100 text-red-600"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         ))}
+                        
+                        {addingVariable === env.id ? (
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Key"
+                              value={newVariableKey}
+                              onChange={(e) => setNewVariableKey(e.target.value)}
+                              className="h-7 text-xs font-mono"
+                            />
+                            <Input
+                              placeholder="Value"
+                              value={newVariableValue}
+                              onChange={(e) => setNewVariableValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddVariable(env.id);
+                                } else if (e.key === 'Escape') {
+                                  setAddingVariable(null);
+                                  setNewVariableKey('');
+                                  setNewVariableValue('');
+                                }
+                              }}
+                              className="h-7 text-xs font-mono"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddVariable(env.id)}
+                              className="h-7 px-2"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAddingVariable(env.id)}
+                            className="w-full h-7 text-xs"
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Variable
+                          </Button>
+                        )}
                       </div>
+                      
                       {activeEnvironmentId !== env.id && (
                         <Button
                           variant="outline"

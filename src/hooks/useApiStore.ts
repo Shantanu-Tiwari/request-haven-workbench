@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -49,6 +48,8 @@ interface ApiStore {
   addToCollection: (request: ApiRequest) => void;
   removeFromCollection: (requestId: string) => void;
   loadFromCollection: (request: ApiRequest) => void;
+  addCollection: (name: string) => void;
+  renameCollection: (oldName: string, newName: string) => void;
 
   // Environments
   environments: Environment[];
@@ -258,6 +259,33 @@ export const useApiStore = create<ApiStore>()(
 
       loadFromCollection: (request) => {
         get().addTab(request);
+      },
+
+      addCollection: (name) => {
+        // Create a placeholder request for the new collection
+        const newRequest: ApiRequest = {
+          id: `req-${Date.now()}`,
+          name: `${name} Request`,
+          method: 'GET',
+          url: '',
+          headers: {},
+          body: '',
+          collection: name
+        };
+        
+        set((state) => ({
+          collections: [...state.collections, newRequest]
+        }));
+      },
+
+      renameCollection: (oldName, newName) => {
+        set((state) => ({
+          collections: state.collections.map(req => 
+            req.collection === oldName 
+              ? { ...req, collection: newName }
+              : req
+          )
+        }));
       },
 
       addEnvironment: (environment) => {

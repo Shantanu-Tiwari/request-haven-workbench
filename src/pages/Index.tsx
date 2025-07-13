@@ -9,7 +9,7 @@ const Index = () => {
   return (
     <div className="h-screen w-full flex bg-gray-50">
       <ResizablePanelGroup direction="horizontal" className="h-full w-full">
-        <ResizablePanel defaultSize={20} minSize={10} maxSize={40} className="h-full">
+        <ResizablePanel defaultSize={20} minSize={3} maxSize={40} className="h-full">
           <Sidebar />
         </ResizablePanel>
         

@@ -10,9 +10,7 @@ export const Sidebar = () => {
     collections, 
     history, 
     environments,
-    activeEnvironmentId,
     loadFromCollection,
-    setActiveEnvironment,
     addCollection,
     renameCollection
   } = useApiStore();
@@ -36,10 +34,9 @@ export const Sidebar = () => {
   };
 
   const handleCreateCollection = () => {
-    const name = prompt('Enter collection name:');
-    if (name && name.trim()) {
-      addCollection(name.trim());
-    }
+    const collectionCount = Object.keys(groupedCollections).length;
+    const newName = `Collection ${collectionCount + 1}`;
+    addCollection(newName);
   };
 
   const handleRenameCollection = (oldName: string, newName: string) => {
@@ -74,7 +71,7 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className={`h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-full'}`}>
+    <div className={`h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-80'}`}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200 shrink-0">
         <div className="flex items-center justify-between mb-4">
@@ -88,58 +85,34 @@ export const Sidebar = () => {
             {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
         </div>
-
-        {!isCollapsed && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Environment
-            </label>
-            <select
-              value={activeEnvironmentId || ''}
-              onChange={(e) => setActiveEnvironment(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {environments.map(env => (
-                <option key={env.id} value={env.id}>
-                  {env.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       {!isCollapsed && (
         <>
-          {/* Navigation Tabs - Made scrollable */}
-          <div className="border-b border-gray-200 shrink-0">
-            <ScrollArea className="w-full">
-              <div className="flex min-w-max" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {/* Navigation Tabs - Horizontally scrollable */}
+          <div className="border-b border-gray-200 shrink-0 overflow-hidden">
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex min-w-max">
                 {[
                   { id: 'collections', label: 'Collections', icon: Database },
                   { id: 'history', label: 'History', icon: Clock },
-                  { id: 'environments', label: 'Env', icon: Settings }
+                  { id: 'environments', label: 'Environments', icon: Settings }
                 ].map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
                     onClick={() => setActiveSection(id as any)}
-                    className={`flex items-center justify-center px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                    className={`flex items-center justify-center px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${
                       activeSection === id
-                        ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        ? 'text-blue-600 border-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-transparent'
                     }`}
                   >
-                    <Icon className="h-4 w-4 mr-1" />
+                    <Icon className="h-4 w-4 mr-2" />
                     {label}
                   </button>
                 ))}
               </div>
-              <style jsx>{`
-                .scrollArea::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Content */}

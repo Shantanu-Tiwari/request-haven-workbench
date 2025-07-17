@@ -121,31 +121,43 @@ export const Sidebar = () => {
   const handleUseEnvironment = (environmentId: string) => {
     setActiveEnvironment(environmentId);
     
-    // Populate the current tab with environment variables
+    // Populate the current tab with environment variable VALUES
     if (activeTabId) {
       const env = environments.find(e => e.id === environmentId);
       if (env && Object.keys(env.variables).length > 0) {
         // Get current tab data
         const currentTab = tabs.find(t => t.id === activeTabId);
         if (currentTab) {
-          // Use first variable as URL example, others as headers
+          // Use actual values, not template syntax
           const varEntries = Object.entries(env.variables);
-          const firstVar = varEntries[0];
+          const baseUrlEntry = varEntries.find(([key]) => key.toLowerCase().includes('url') || key.toLowerCase().includes('host'));
           
           updateTab(activeTabId, {
             request: {
               ...currentTab.request,
-              url: firstVar ? `{{${firstVar[0]}}}` : currentTab.request.url,
+              url: baseUrlEntry ? baseUrlEntry[1] : currentTab.request.url,
               headers: {
                 ...currentTab.request.headers,
                 ...Object.fromEntries(
-                  varEntries.slice(1).map(([key, value]) => [`X-${key}`, `{{${key}}}`])
+                  varEntries
+                    .filter(([key]) => !key.toLowerCase().includes('url') && !key.toLowerCase().includes('host'))
+                    .map(([key, value]) => [key, value])
                 )
               }
             }
           });
         }
       }
+    }
+  };
+
+  const handleResetEnvironment = (envId: string) => {
+    const env = environments.find(e => e.id === envId);
+    if (env) {
+      // Reset all variables to empty
+      Object.keys(env.variables).forEach(key => {
+        updateEnvironmentVariable(envId, key, '');
+      });
     }
   };
 
@@ -423,21 +435,31 @@ export const Sidebar = () => {
                     <div key={env.id} className={`space-y-2 p-3 rounded-lg border ${
                       activeEnvironmentId === env.id ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
                     }`}>
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-gray-900">{env.name}</div>
-                        {activeEnvironmentId === env.id ? (
-                          <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Active</span>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleUseEnvironment(env.id)}
-                            className="h-6 text-xs"
-                          >
-                            Use This
-                          </Button>
-                        )}
-                      </div>
+                       <div className="flex items-center justify-between">
+                         <div className="font-medium text-gray-900">{env.name}</div>
+                         <div className="flex items-center gap-2">
+                           {activeEnvironmentId === env.id ? (
+                             <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Active</span>
+                           ) : (
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => handleUseEnvironment(env.id)}
+                               className="h-6 text-xs"
+                             >
+                               Use This
+                             </Button>
+                           )}
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => handleResetEnvironment(env.id)}
+                             className="h-6 text-xs text-red-600 hover:text-red-700"
+                           >
+                             Reset
+                           </Button>
+                         </div>
+                       </div>
                       
                       <div className="space-y-2">
                         {Object.entries(env.variables).map(([key, value]) => (

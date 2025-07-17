@@ -126,7 +126,9 @@ export const useApiStore = create<ApiStore>()(
 
         set((state) => ({
           tabs: [...state.tabs, newTab],
-          activeTabId: id
+          activeTabId: id,
+          // Clear active environment when creating new request
+          activeEnvironmentId: null
         }));
 
         return id;

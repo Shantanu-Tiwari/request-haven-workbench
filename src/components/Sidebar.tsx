@@ -128,22 +128,20 @@ export const Sidebar = () => {
         // Get current tab data
         const currentTab = tabs.find(t => t.id === activeTabId);
         if (currentTab) {
-          // Use actual values, not template syntax
+          // Clear previous environment data and use actual values, not template syntax
           const varEntries = Object.entries(env.variables);
           const baseUrlEntry = varEntries.find(([key]) => key.toLowerCase().includes('url') || key.toLowerCase().includes('host'));
           
+          // Replace all data, don't merge with existing
           updateTab(activeTabId, {
             request: {
               ...currentTab.request,
-              url: baseUrlEntry ? baseUrlEntry[1] : currentTab.request.url,
-              headers: {
-                ...currentTab.request.headers,
-                ...Object.fromEntries(
-                  varEntries
-                    .filter(([key]) => !key.toLowerCase().includes('url') && !key.toLowerCase().includes('host'))
-                    .map(([key, value]) => [key, value])
-                )
-              }
+              url: baseUrlEntry ? baseUrlEntry[1] : '',
+              headers: Object.fromEntries(
+                varEntries
+                  .filter(([key]) => !key.toLowerCase().includes('url') && !key.toLowerCase().includes('host'))
+                  .map(([key, value]) => [key, value])
+              )
             }
           });
         }
@@ -152,11 +150,17 @@ export const Sidebar = () => {
   };
 
   const handleResetEnvironment = (envId: string) => {
+    // Reset to default values: base_url and api_key
+    updateEnvironmentVariable(envId, 'base_url', 'https://api.example.com');
+    updateEnvironmentVariable(envId, 'api_key', 'your_api_key_here');
+    
+    // Remove any other variables that might exist
     const env = environments.find(e => e.id === envId);
     if (env) {
-      // Reset all variables to empty
       Object.keys(env.variables).forEach(key => {
-        updateEnvironmentVariable(envId, key, '');
+        if (key !== 'base_url' && key !== 'api_key') {
+          deleteEnvironmentVariable(envId, key);
+        }
       });
     }
   };

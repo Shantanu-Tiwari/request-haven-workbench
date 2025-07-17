@@ -52,7 +52,7 @@ export const Sidebar = () => {
     const newName = `Collection ${collectionCount + 1}`;
     addCollection(newName);
     setActiveCollection(newName);
-    setExpandedCollections(prev => new Set([...prev, newName]));
+    toggleCollection(newName);
   };
 
   const handleRenameCollection = (oldName: string, newName: string) => {
@@ -71,9 +71,10 @@ export const Sidebar = () => {
     const requestsToDelete = collections.filter(req => req.collection === collectionName);
     requestsToDelete.forEach(req => removeFromCollection(req.id));
     
-    // If this was the active collection, switch to Default
+    // If this was the active collection, switch to next available collection
     if (activeCollection === collectionName) {
-      setActiveCollection('Default');
+      const remainingCollections = Object.keys(groupedCollections).filter(name => name !== collectionName);
+      setActiveCollection(remainingCollections.length > 0 ? remainingCollections[0] : 'Default');
     }
   };
 
@@ -83,9 +84,15 @@ export const Sidebar = () => {
   };
 
   const handleCollectionClick = (collectionName: string) => {
-    setActiveCollection(collectionName);
-    if (!expandedCollections.has(collectionName)) {
+    if (activeCollection === collectionName) {
+      // If clicking on already active collection, toggle its expanded state
       toggleCollection(collectionName);
+    } else {
+      // Set as active and expand it
+      setActiveCollection(collectionName);
+      if (!expandedCollections.has(collectionName)) {
+        toggleCollection(collectionName);
+      }
     }
   };
 

@@ -14,6 +14,8 @@ export const Sidebar = () => {
     environments,
     activeEnvironmentId,
     activeCollection,
+    tabs,
+    activeTabId,
     loadFromCollection,
     addCollection,
     renameCollection,
@@ -22,7 +24,8 @@ export const Sidebar = () => {
     updateEnvironmentVariable,
     deleteEnvironmentVariable,
     addEnvironmentVariable,
-    removeFromCollection
+    removeFromCollection,
+    updateTab
   } = useApiStore();
 
   const [activeSection, setActiveSection] = useState<'collections' | 'history' | 'environments'>('collections');
@@ -117,6 +120,33 @@ export const Sidebar = () => {
 
   const handleUseEnvironment = (environmentId: string) => {
     setActiveEnvironment(environmentId);
+    
+    // Populate the current tab with environment variables
+    if (activeTabId) {
+      const env = environments.find(e => e.id === environmentId);
+      if (env && Object.keys(env.variables).length > 0) {
+        // Get current tab data
+        const currentTab = tabs.find(t => t.id === activeTabId);
+        if (currentTab) {
+          // Use first variable as URL example, others as headers
+          const varEntries = Object.entries(env.variables);
+          const firstVar = varEntries[0];
+          
+          updateTab(activeTabId, {
+            request: {
+              ...currentTab.request,
+              url: firstVar ? `{{${firstVar[0]}}}` : currentTab.request.url,
+              headers: {
+                ...currentTab.request.headers,
+                ...Object.fromEntries(
+                  varEntries.slice(1).map(([key, value]) => [`X-${key}`, `{{${key}}}`])
+                )
+              }
+            }
+          });
+        }
+      }
+    }
   };
 
   const groupedCollections = collections.reduce((acc, request) => {
@@ -358,7 +388,7 @@ export const Sidebar = () => {
                   ) : (
                     history.map((request, index) => (
                       <button
-                        key={`${request.id}-${request.timestamp}`}
+                        key={`history-${request.id}-${request.timestamp}-${index}`}
                         onClick={() => loadFromCollection(request)}
                         className="flex items-start w-full px-2 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
                       >

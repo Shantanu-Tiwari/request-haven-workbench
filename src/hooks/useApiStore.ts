@@ -279,8 +279,23 @@ export const useApiStore = create<ApiStore>()(
       },
 
       addCollection: (name) => {
-        // Just set the active collection, don't create a placeholder request
         set({ activeCollection: name });
+        // Track the collection exists by ensuring it's in available collections
+        const state = get();
+        if (!state.collections.some(req => req.collection === name)) {
+          // Add a placeholder to track the collection exists
+          set((currentState) => ({
+            collections: [...currentState.collections, {
+              id: `collection-placeholder-${Date.now()}`,
+              name: `Placeholder for ${name}`,
+              method: 'GET' as const,
+              url: '',
+              headers: {},
+              body: '',
+              collection: name
+            } as ApiRequest]
+          }));
+        }
       },
 
       renameCollection: (oldName, newName) => {

@@ -115,6 +115,11 @@ export const Sidebar = () => {
       setNewVariableKey('');
       setNewVariableValue('');
       setAddingVariable(null);
+    } else {
+      // If fields are empty, cancel the add operation
+      setNewVariableKey('');
+      setNewVariableValue('');
+      setAddingVariable(null);
     }
   };
 
